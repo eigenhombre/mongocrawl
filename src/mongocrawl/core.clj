@@ -95,4 +95,4 @@
     (println (format "Iteration %d: %d users, %d repos"
                      i (count @users) (count @repos)))))
 
-(crawl-github "clojure" "clojure")
+;(crawl-github "clojure" "clojure")
