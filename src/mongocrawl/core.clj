@@ -14,6 +14,9 @@
             (map u relevant-fields))))
 
 (def clojure (repos/specific-repo "clojure" "clojure"))
+(def important-repo? (fn [repo] (> (get repo :forks) 10)))
+(def important-user? (fn [user] (and (> (get user :followers) 5) 
+                                     (> (get user :public_repos) 20))))
 
 (def clojure-collabs
   (map :login (repos/collaborators "clojure" "clojure")))
