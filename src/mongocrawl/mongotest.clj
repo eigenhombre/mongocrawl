@@ -1,6 +1,6 @@
 ; Example taken from http://clojuremongodb.info/articles/getting_started.html
 
-(ns my.service.server
+(ns mongocrawl.mongotest 
   (:require [monger.core :as mg])
   (:require [monger.collection :as mc])
   (:require [clojure.pprint :as pp])
@@ -11,13 +11,13 @@
     (mg/connect! sa opts))
 
 ; Database is monger-test "use monger-test"
-(mg/set-db! (monger.core/get-db "monger-test"))
+;(mg/set-db! (monger.core/get-db "monger-test"))
 
 ; Table is "documents"
-(mc/insert "documents" {:first_name "John"  :last_name "Lennon"})
-(mc/insert "documents" {:first_name "Ringo" :last_name "Starr"})
+;(mc/insert "documents" {:first_name "John"  :last_name "Lennon"})
+;(mc/insert "documents" {:first_name "Ringo" :last_name "Starr"})
 
-(pp/pprint (mc/find-maps "documents" {:first_name "Ringo"}))
+;(pp/pprint (mc/find-maps "documents" {:first_name "Ringo"}))
 
 
 
