@@ -36,7 +36,7 @@
 ; (user "mrocklin"
 (defn user [login]
   (if (seq (mc/find-maps "users" {:login login})) ; if not empty
-      (mc/find-maps "users" {:login login})
+      (first (mc/find-maps "users" {:login login}))
       (let [result (users/user login)]
           (mc/insert "users" result)
           result)))
@@ -54,8 +54,10 @@
   (mc/remove table))
 
 (setup)
+; (mc/remove "users")
+; (mc/remove "repos")
 
-(expect "http://matthewrocklin.com" (get (first (user "mrocklin")) :blog))
+(expect "http://matthewrocklin.com" (get (user "mrocklin") :blog))
 (expect 1 (count (repos-of-user "languagejam")))
 (expect "test" (:name (first (repos-of-user "languagejam"))))
 (expect 1 (count (mc/find-maps "users" {:login "mrocklin"}))) ;occur once in db
