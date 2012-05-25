@@ -1,6 +1,7 @@
 (ns mongocrawl.core
   (:require [tentacles.users :as users])
   (:require [tentacles.repos :as repos])
+  (:require [mongocrawl.gitrequest :as gitrequest])
   (:use [expectations])
   (:require [clojure.pprint :as pp]))
 
@@ -23,11 +24,11 @@
 
 (defn repos-of-user [u]
   (print "R") (flush)
-  (map :name (repos/user-repos u)))
+  (map :name (gitrequest/user-repos u)))
 
 (defn users-of-repo [u r]
   (print "u") (flush)
-  (map :login (repos/collaborators u r)))
+  (map :login (gitrequest/collaborators u r)))
 
 (defn update-users [users repos]
   (let [all-users (set (apply concat (vals repos)))
