@@ -41,13 +41,23 @@
           (mc/insert "users" result)
           result)))
 
-(defn repos-of-user [login]
+(defn user-repos [login]
   (let [db-result (mc/find-maps "repos" {"owner.login" login})]
        (if (seq db-result)
            db-result
            (let [api-results (repos/user-repos login)]
            (mc/insert-batch "repos" api-results)
            api-results))))
+
+(defn collaborators [user repo]
+  (let [db-result (mc/find-maps "collaborators" {:owner-login user :repo repo})]
+    (if (seq db-result)
+      db-result
+      (let [api-results (repos/collaborators user repo)
+            api-results2 (map #(merge {:owner-login user :repo repo} %) 
+                              api-results)]
+        (mc/insert-batch "collaborators" api-results2)
+        api-results2))))
 
 ; (drop "users")
 (defn drop-table [table]
@@ -58,9 +68,10 @@
 ; (mc/remove "repos")
 
 (expect "http://matthewrocklin.com" (get (user "mrocklin") :blog))
-(expect 1 (count (repos-of-user "languagejam")))
-(expect "test" (:name (first (repos-of-user "languagejam"))))
+(expect 1 (count (user-repos "languagejam")))
+(expect "test" (:name (first (user-repos "languagejam"))))
 (expect 1 (count (mc/find-maps "users" {:login "mrocklin"}))) ;occur once in db
 (expect 1 (count (mc/find-maps "repos" 
                                {:name "test" "owner.login" "languagejam"})))
+(expect #{"mrocklin" "eigenhombre"} (set (map :login (collaborators "eigenhombre" "mongocrawl"))))
 
