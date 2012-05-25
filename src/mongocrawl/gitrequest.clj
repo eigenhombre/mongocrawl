@@ -24,14 +24,6 @@
   ([server port name]  (connect server port)  (set-db! name))
   ([] (connect) (set-db! db-name)))
 
-(defn repos-of-user [u]
-  (print "R") (flush)
-  (map :name (remove :fork (repos/user-repos u))))
-
-(defn users-of-repo [u r]
-  (print "u") (flush)
-  (map :login (repos/collaborators u r)))
-
 ; (user "mrocklin) 
 ; (user "mrocklin"
 (defn user [login]
@@ -40,6 +32,14 @@
       (let [result (users/user login)]
           (mc/insert "users" result)
           result)))
+
+(defn specific-repo [login name]
+  (let [db-results (mc/find-maps "repos" {"owner.login" login :name name})]
+    (if (seq db-results)
+       (first db-results)
+       (let [api-result (repos/specific-repo login name)]
+           (mc/insert "repos" api-result)
+           api-result))))
 
 (defn user-repos [login]
   (let [db-result (mc/find-maps "repos" {"owner.login" login})]
@@ -74,4 +74,6 @@
 (expect 1 (count (mc/find-maps "repos" 
                                {:name "test" "owner.login" "languagejam"})))
 (expect #{"mrocklin" "eigenhombre"} (set (map :login (collaborators "eigenhombre" "mongocrawl"))))
-
+(expect "git://github.com/mrocklin/matrix-algebra.git" 
+        (:git_url (specific-repo "mrocklin" "matrix-algebra")))
+(expect 1 (count (mc/find-maps "repos" {:name "matrix-algebra"})))
