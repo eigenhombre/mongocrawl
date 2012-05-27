@@ -33,11 +33,11 @@
           (mc/insert "users" result)
           result)))
 
-(defn specific-repo [login name]
-  (let [db-results (mc/find-maps "repos" {"owner.login" login :name name})]
+(defn specific-repo [login repo-name]
+  (let [db-results (mc/find-maps "repos" {"owner.login" login :name repo-name})]
     (if (seq db-results)
        (first db-results)
-       (let [api-result (repos/specific-repo login name)]
+       (let [api-result (repos/specific-repo login repo-name)]
            (mc/insert "repos" api-result)
            api-result))))
 
@@ -49,12 +49,13 @@
            (mc/insert-batch "repos" api-results)
            api-results))))
 
-(defn collaborators [user repo]
-  (let [db-result (mc/find-maps "collaborators" {:owner-login user :repo repo})]
+(defn collaborators [login repo-name]
+  (let [db-result 
+        (mc/find-maps "collaborators" {:owner-login login :repo repo-name})]
     (if (seq db-result)
       db-result
-      (let [api-results (repos/collaborators user repo)
-            api-results2 (map #(merge {:owner-login user :repo repo} %) 
+      (let [api-results (repos/collaborators login repo-name)
+            api-results2 (map #(merge {:owner-login login :repo repo-name} %) 
                               api-results)]
         (mc/insert-batch "collaborators" api-results2)
         api-results2))))
