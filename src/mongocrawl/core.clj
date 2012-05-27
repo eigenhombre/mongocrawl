@@ -15,9 +15,12 @@
     (zipmap relevant-fields
             (map user relevant-fields))))
 
-(def important-repo? (fn [repo] (> (get repo :forks) 10)))
-(def important-user? (fn [user] (and (> (get user :followers) 5) 
-                                     (> (get user :public_repos) 20))))
+(defn priority-user [user]
+  (min (:followers user) (:public_repos user)))
+(expect 9 (priority-user (gitrequest/user "mrocklin")))
+(defn priority-repo [repo]
+  (:forks repo))
+(expect 2 (priority-repo (gitrequest/specific-repo "mrocklin" "suntracker")))
 
 (defn repos-of-user [login]
   (print "R") (flush)
@@ -34,8 +37,8 @@
         new-users (zipmap new-names new-repos)]
     (merge users new-users)))
 
-(defn rekey [user repos]
-  (for [repo repos] [user repo]))
+(defn rekey [login repo-names]
+  (for [repo-name repo-names] [login repo-name]))
 (expect [[:a 1] [:a 2] [:a 3]]
         (rekey :a [1 2 3]))
 
@@ -57,33 +60,71 @@
   [(update-users users repos) (update-repos users repos)])
   ([[users repos]] (step users repos)))
 
-;(pp/pprint (step (step {"sympy" ["sympy"]}
-;                       {})))
 
 ;;; Another whack
 
-(def users (atom {}))
-(def repos (atom {}))
+; higher priorities first
+(def user-queue (atom (priority-map-by (comparator >)))) 
+(def repo-queue (atom (priority-map-by (comparator >))))
+
+(def user-graph (atom {}))
+(def repo-graph (atom {}))
+
+(expect '([1 :a] [2 :b] [3 :c]) (map vector '(1 2 3) '(:a :b :c)))
 
 (defn expand-users
   ([login]
-     (if-not (some #{login} @users)
-       (let [repos (repos-of-user login)]
-         (swap! users assoc login repos))))
+     (if-not (contains? @user-graph login)
+       (let [repos (gitrequest/user-repos login)
+             reponames (map :name repos)
+             new-repos (remove
+                         (fn [r] (contains? @repo-graph [login (:name r)]))
+                         repos)         
+             new-reponames (map :name new-repos)
+             new-userrepos (rekey login new-reponames)
+             new-priorities (map priority-repo new-repos)]
+         (swap! user-graph assoc login reponames)
+         (swap! repo-queue into (map vector new-userrepos new-priorities )))))
   ([]
-     (doseq [repo-name (keys @repos)
-             login (@repos repo-name)]
-       (expand-users login))))
+   (expand-users (first (peek @user-queue)))
+   (swap! user-queue pop )))
+
 
 (defn expand-repos
   ([login repo-name]
-     (if-not (some #{[login repo-name]} @repos)
-       (doseq [collaborator (users-of-repo login repo-name)]
-         (swap! repos update-in [[login repo-name]] conj collaborator))))
+     (if-not (contains? @repo-graph [login repo-name])
+       (let [collabs (gitrequest/collaborators login repo-name)
+             collab-logins (map :login collabs)
+             new-collab-logins (remove 
+                                (fn [login] (contains? @user-graph login)) 
+                                collab-logins)
+             new-collaborators (map gitrequest/user new-collab-logins)
+             new-priorities (map priority-user new-collaborators)]
+         (swap! repo-graph assoc [login repo-name] collab-logins)
+         (swap! user-queue into 
+                (map vector new-collab-logins new-priorities)))))
+  ([[login repo-name]] (expand-repos login repo-name))
   ([]
-     (doseq [login (keys @users)
-             repo-name (@users login)]
-       (expand-repos login repo-name))))
+   (expand-repos (first (peek @repo-queue)))
+   (swap! repo-queue pop)))
+
+(expand-users "clojure")
+(expand-repos)
+(expand-users)
+(expand-repos)
+(expand-repos)
+(expand-users)
+(expand-repos)
+(expand-users)
+(expand-repos)
+(expand-users)
+(expand-repos)
+(expand-users)
+(expand-repos)
+(expand-users)
+(expand-users)
+(pp/pprint [@user-graph @repo-graph])
+(pp/pprint [@user-queue @repo-queue])
 
 (defn crawl-github [start-user start-repo]
   (expand-repos start-user start-repo)
@@ -91,19 +132,10 @@
     (expand-users)
     (expand-repos)
     (println (format "Iteration %d: %d users, %d repos"
-                     i (count @users) (count @repos)))))
+                     i (count @user-graph) (count @repo-graph)))))
 
 ;(crawl-github "clojure" "clojure")
-;(pp/pprint @users)
+;(pp/pprint @user-graph)
 
-(pp/pprint (gitrequest/user "mrocklin"))
-(pp/pprint (gitrequest/specific-repo "mrocklin" "suntracker"))
-(defn priority-user [user]
-  (min (:followers user) (:public_repos user)))
-(expect 9 (priority-user (gitrequest/user "mrocklin")))
-(defn priority-repo [repo]
-  (:forks repo))
-(expect 2 (priority-repo (gitrequest/specific-repo "mrocklin" "suntracker")))
-
-
-
+;(pp/pprint (gitrequest/user "mrocklin"))
+;(pp/pprint (gitrequest/specific-repo "mrocklin" "suntracker"))
