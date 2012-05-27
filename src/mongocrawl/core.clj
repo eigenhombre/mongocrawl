@@ -2,6 +2,7 @@
   (:require [tentacles.users :as users])
   (:require [tentacles.repos :as repos])
   (:require [mongocrawl.gitrequest :as gitrequest])
+  (:use [clojure.data.priority-map :as priority-map])
   (:use [expectations])
   (:require [clojure.pprint :as pp]))
 
@@ -14,13 +15,9 @@
     (zipmap relevant-fields
             (map u relevant-fields))))
 
-(def clojure (repos/specific-repo "clojure" "clojure"))
 (def important-repo? (fn [repo] (> (get repo :forks) 10)))
 (def important-user? (fn [user] (and (> (get user :followers) 5) 
                                      (> (get user :public_repos) 20))))
-
-(def clojure-collabs
-  (map :login (repos/collaborators "clojure" "clojure")))
 
 (defn repos-of-user [u]
   (print "R") (flush)
