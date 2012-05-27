@@ -93,5 +93,17 @@
     (println (format "Iteration %d: %d users, %d repos"
                      i (count @users) (count @repos)))))
 
-(crawl-github "clojure" "clojure")
-(pp/pprint @users)
+;(crawl-github "clojure" "clojure")
+;(pp/pprint @users)
+
+(pp/pprint (gitrequest/user "mrocklin"))
+(pp/pprint (gitrequest/specific-repo "mrocklin" "suntracker"))
+(defn priority-user [user]
+  (min (:followers user) (:public_repos user)))
+(expect 9 (priority-user (gitrequest/user "mrocklin")))
+(defn priority-repo [repo]
+  (:forks repo))
+(expect 2 (priority-repo (gitrequest/specific-repo "mrocklin" "suntracker")))
+
+
+
