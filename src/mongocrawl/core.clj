@@ -6,26 +6,26 @@
   (:use [expectations])
   (:require [clojure.pprint :as pp]))
 
-(defn reduced-user [u]
+(defn reduced-user [user]
   (let [relevant-fields [:followers
                          :name
                          :location
                          :login
                          :public_repos]]
     (zipmap relevant-fields
-            (map u relevant-fields))))
+            (map user relevant-fields))))
 
 (def important-repo? (fn [repo] (> (get repo :forks) 10)))
 (def important-user? (fn [user] (and (> (get user :followers) 5) 
                                      (> (get user :public_repos) 20))))
 
-(defn repos-of-user [u]
+(defn repos-of-user [login]
   (print "R") (flush)
-  (map :name (gitrequest/user-repos u)))
+  (map :name (gitrequest/user-repos login)))
 
-(defn users-of-repo [u r]
+(defn users-of-repo [login repo-name]
   (print "u") (flush)
-  (map :login (gitrequest/collaborators u r)))
+  (map :login (gitrequest/collaborators login repo-name)))
 
 (defn update-users [users repos]
   (let [all-users (set (apply concat (vals repos)))
@@ -66,24 +66,24 @@
 (def repos (atom {}))
 
 (defn expand-users
-  ([username]
-     (if-not (some #{username} @users)
-       (let [repos (repos-of-user username)]
-         (swap! users assoc username repos))))
+  ([login]
+     (if-not (some #{login} @users)
+       (let [repos (repos-of-user login)]
+         (swap! users assoc login repos))))
   ([]
-     (doseq [repo (keys @repos)
-             user (@repos repo)]
-       (expand-users user))))
+     (doseq [repo-name (keys @repos)
+             login (@repos repo-name)]
+       (expand-users login))))
 
 (defn expand-repos
-  ([username project]
-     (if-not (some #{[username project]} @repos)
-       (doseq [user (users-of-repo username project)]
-         (swap! repos update-in [[username project]] conj user))))
+  ([login repo-name]
+     (if-not (some #{[login repo-name]} @repos)
+       (doseq [collaborator (users-of-repo login repo-name)]
+         (swap! repos update-in [[login repo-name]] conj collaborator))))
   ([]
-     (doseq [user (keys @users)
-             repo (@users user)]
-       (expand-repos user repo))))
+     (doseq [login (keys @users)
+             repo-name (@users login)]
+       (expand-repos login repo-name))))
 
 (defn crawl-github [start-user start-repo]
   (expand-repos start-user start-repo)
@@ -93,4 +93,5 @@
     (println (format "Iteration %d: %d users, %d repos"
                      i (count @users) (count @repos)))))
 
-;(crawl-github "clojure" "clojure")
+(crawl-github "clojure" "clojure")
+(pp/pprint @users)
