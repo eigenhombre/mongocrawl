@@ -23,45 +23,57 @@
 (defn rekey [login repo-names]
   (for [repo-name repo-names] [login repo-name]))
 
-; higher priorities first
-(def user-queue (atom (priority-map-by (comparator >)))) 
-(def repo-queue (atom (priority-map-by (comparator >))))
-
-(def user-graph (atom {}))
-(def repo-graph (atom {}))
 
 (defn expand-users
-  ([login]
-     (if-not (contains? @user-graph login)
+  ([{user-graph :user-graph repo-graph :repo-graph 
+     repo-queue :repo-queue user-queue :user-queue}
+    login]
+     (if (contains? user-graph login)
+       {:user-graph user-graph  :user-queue user-queue
+        :repo-graph repo-graph  :repo-queue repo-queue}
        (let [repos (gitrequest/user-repos login)
-             reponames (map :name repos)
              new-repos (remove
-                         (fn [r] (contains? @repo-graph [login (:name r)]))
+                         (fn [r] (contains? repo-graph [login (:name r)]))
                          repos)         
              new-reponames (map :name new-repos)
              new-userrepos (rekey login new-reponames)
-             new-priorities (map priority-repo new-repos)]
-         (swap! user-graph assoc login reponames)
-         (swap! repo-queue into (map vector new-userrepos new-priorities )))))
-  ([]
-   (expand-users (first (peek @user-queue)))
-   (swap! user-queue pop )))
-
+             new-priorities (map priority-repo new-repos)
+             new-priority-pairs (map vector new-userrepos new-priorities)
+             new-user-graph (assoc user-graph login (map :name repos))
+             new-repo-queue (into repo-queue new-priority-pairs)]
+         {:user-graph new-user-graph :user-queue user-queue
+          :repo-graph repo-graph     :repo-queue new-repo-queue}
+         )))
+  ([state]
+   (if (empty? (state :user-queue))
+     state
+     (let [login (-> state :user-queue peek first)
+           new-state (update-in state [:user-queue] pop)]
+       (expand-users new-state login)))))
 
 (defn expand-repos
-  ([login repo-name]
-     (if-not (contains? @repo-graph [login repo-name])
+  ([{user-graph :user-graph repo-graph :repo-graph 
+     user-queue :user-queue repo-queue :repo-queue }
+  login repo-name]
+     (if (contains? repo-graph [login repo-name])
+       {:user-graph user-graph  :user-queue user-queue
+        :repo-graph repo-graph  :repo-queue repo-queue}
        (let [collabs (gitrequest/collaborators login repo-name)
              collab-logins (map :login collabs)
              new-collab-logins (remove 
-                                (fn [login] (contains? @user-graph login)) 
+                                (fn [login] (contains? user-graph login)) 
                                 collab-logins)
              new-collaborators (map gitrequest/user new-collab-logins)
-             new-priorities (map priority-user new-collaborators)]
-         (swap! repo-graph assoc [login repo-name] collab-logins)
-         (swap! user-queue into 
-                (map vector new-collab-logins new-priorities)))))
-  ([[login repo-name]] (expand-repos login repo-name))
-  ([]
-   (expand-repos (first (peek @repo-queue)))
-   (swap! repo-queue pop)))
+             new-priorities (map priority-user new-collaborators)
+             new-priority-pairs (map vector new-collab-logins new-priorities)
+             new-repo-graph (assoc repo-graph [login repo-name] collab-logins)
+             new-user-queue (into user-queue new-priority-pairs)]
+         {:user-graph user-graph      :user-queue new-user-queue
+          :repo-graph new-repo-graph  :repo-queue repo-queue})))
+  ([state]
+   (if (empty? (state :repo-queue))
+     state
+     (let [[login repo-name] (first (peek (:repo-queue state)))
+           new-state (update-in state [:repo-queue] pop)]
+       (expand-repos new-state login repo-name)))))
+

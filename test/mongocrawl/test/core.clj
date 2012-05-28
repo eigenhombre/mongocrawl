@@ -28,3 +28,11 @@
 ;(expand-users)
 ;(pp/pprint [@user-graph @repo-graph])
 ;(pp/pprint [@user-queue @repo-queue])
+
+; higher priorities first
+(def empty-state {:user-graph {} 
+                  :repo-graph {} 
+                  :user-queue (priority-map-by (comparator >))
+                  :repo-queue (priority-map-by (comparator >))})
+(def start-state (assoc-in empty-state [:user-queue "Clojure"] 0))
+(pp/pprint (-> start-state expand-users expand-repos expand-users ))
