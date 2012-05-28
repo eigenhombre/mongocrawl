@@ -77,3 +77,8 @@
            new-state (update-in state [:repo-queue] pop)]
        (expand-repos new-state login repo-name)))))
 
+(defn step [state] (-> state expand-users expand-repos))
+(defn step-n [state n] 
+  (if (= n 0) 
+    state
+    (step-n (step state) (- n 1))))

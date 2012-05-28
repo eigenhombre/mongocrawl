@@ -13,28 +13,23 @@
 
 (expect '([1 :a] [2 :b] [3 :c]) (map vector '(1 2 3) '(:a :b :c)))
 
-;(expand-users "clojure")
-;(expand-repos)
-;(expand-users)
-;(expand-repos)
-;(expand-repos)
-;(expand-users)
-;(expand-repos)
-;(expand-users)
-;(expand-repos)
-;(expand-users)
-;(expand-repos)
-;(expand-users)
-;(expand-repos)
-;(expand-users)
-;(expand-users)
-;(pp/pprint [@user-graph @repo-graph])
-;(pp/pprint [@user-queue @repo-queue])
-
 ; higher priorities first
 (def empty-state {:user-graph {} 
                   :repo-graph {} 
                   :user-queue (priority-map-by (comparator >))
                   :repo-queue (priority-map-by (comparator >))})
-(def start-state (assoc-in empty-state [:user-queue "Clojure"] 0))
-(spit "state.txt" (-> start-state expand-users expand-repos expand-users ))
+(def clojure-state (assoc-in empty-state [:user-queue "Clojure"] 0))
+(def numpy-state (assoc-in empty-state [:user-queue "numpy"] 0))
+(defn user-state [login]
+  (assoc-in empty-state [:user-queue login] 0))
+(expect numpy-state (user-state "numpy"))
+
+(import java.io.StringWriter)
+(defn hashmap-to-string [m] 
+    (let [w (StringWriter.)] (pp/pprint m w)(.toString w)))
+
+(defn write-user-network [login num-steps]
+  (spit (str login ".txt") 
+        (hashmap-to-string (step-n (user-state login) num-steps))))
+;(spit "clojure.txt" (hashmap-to-string (step-n start-state 500)))
+;(spit "numpy.txt" (hashmap-to-string (step-n start-state 500)))
