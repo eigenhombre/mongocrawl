@@ -1,6 +1,30 @@
 (ns mongocrawl.test.core
   (:use [mongocrawl.core])
-  (:use [clojure.test]))
+  (:require [mongocrawl.gitrequest :as gitrequest])
+  (:use expectations))
 
-(deftest replace-me ;; FIXME: write
-  (is false "No tests have been written."))
+(expect 9 (priority-user (gitrequest/user "mrocklin")))
+(expect 2 (priority-repo (gitrequest/specific-repo "mrocklin" "suntracker")))
+
+(expect [[:a 1] [:a 2] [:a 3]]
+        (rekey :a [1 2 3]))
+
+(expect '([1 :a] [2 :b] [3 :c]) (map vector '(1 2 3) '(:a :b :c)))
+
+;(expand-users "clojure")
+;(expand-repos)
+;(expand-users)
+;(expand-repos)
+;(expand-repos)
+;(expand-users)
+;(expand-repos)
+;(expand-users)
+;(expand-repos)
+;(expand-users)
+;(expand-repos)
+;(expand-users)
+;(expand-repos)
+;(expand-users)
+;(expand-users)
+;(pp/pprint [@user-graph @repo-graph])
+;(pp/pprint [@user-queue @repo-queue])
