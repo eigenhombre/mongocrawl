@@ -1,6 +1,8 @@
 (ns mongocrawl.test.core
   (:use [mongocrawl.core])
   (:require [mongocrawl.gitrequest :as gitrequest])
+  (:use [clojure.data.priority-map :as priority-map])
+  (:require [clojure.pprint :as pp])
   (:use expectations))
 
 (expect 9 (priority-user (gitrequest/user "mrocklin")))
@@ -35,4 +37,4 @@
                   :user-queue (priority-map-by (comparator >))
                   :repo-queue (priority-map-by (comparator >))})
 (def start-state (assoc-in empty-state [:user-queue "Clojure"] 0))
-(pp/pprint (-> start-state expand-users expand-repos expand-users ))
+(spit "state.txt" (-> start-state expand-users expand-repos expand-users ))
