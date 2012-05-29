@@ -23,6 +23,8 @@
 (defn rekey [login repo-names]
   (for [repo-name repo-names] [login repo-name]))
 
+(defn repo-key [repo]
+  [(:login (:owner repo)) (:name repo)])
 
 (defn expand-users
   ([{user-graph :user-graph repo-graph :repo-graph 
@@ -32,11 +34,11 @@
        {:user-graph user-graph  :user-queue user-queue
         :repo-graph repo-graph  :repo-queue repo-queue}
        (let [repos (gitrequest/user-repos login)
+             forked-repos (map :parent (filter :parent repos)) 
              new-repos (remove
-                         (fn [r] (contains? repo-graph [login (:name r)]))
-                         repos)         
-             new-reponames (map :name new-repos)
-             new-userrepos (rekey login new-reponames)
+                         (fn [r] (contains? repo-graph (repo-key r)))
+                         (concat repos forked-repos))
+             new-userrepos (map repo-key new-repos)
              new-priorities (map priority-repo new-repos)
              new-priority-pairs (map vector new-userrepos new-priorities)
              new-user-graph (assoc user-graph login (map :name repos))
