@@ -34,7 +34,10 @@
        {:user-graph user-graph  :user-queue user-queue
         :repo-graph repo-graph  :repo-queue repo-queue}
        (let [repos (gitrequest/user-repos login)
-             forked-repos (map :parent (filter :parent repos)) 
+             forked-repos (map 
+                              #(:parent (gitrequest/specific-repo 
+                                   (:login (:owner %)) (:name %)))
+                              (filter :fork repos))
              new-repos (remove
                          (fn [r] (contains? repo-graph (repo-key r)))
                          (concat repos forked-repos))

@@ -33,3 +33,4 @@
         (hashmap-to-string (step-n (user-state login) num-steps))))
 ;(spit "clojure.txt" (hashmap-to-string (step-n start-state 500)))
 ;(spit "numpy.txt" (hashmap-to-string (step-n start-state 500)))
+;(pp/pprint (expand-users (user-state "mrocklin")))
