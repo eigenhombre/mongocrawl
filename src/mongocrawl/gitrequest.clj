@@ -5,7 +5,6 @@
   (:require [tentacles.repos :as repos])
   (:require [monger.core :as mg])
   (:require [monger.collection :as mc])
-  (:require [clojure.pprint :as pp])
   (:import [com.mongodb MongoOptions ServerAddress]))
 
 (defn connect 
@@ -24,8 +23,6 @@
   ([server port name]  (connect server port)  (set-db! name))
   ([] (connect) (set-db! db-name)))
 
-; (user "mrocklin) 
-; (user "mrocklin"
 (defn user [login]
   (if (seq (mc/find-maps "users" {:login login})) ; if not empty
       (first (mc/find-maps "users" {:login login}))
@@ -34,11 +31,11 @@
           result)))
 
 (defn specific-repo [login repo-name]
-  (let [db-results (mc/find-maps "repos" {"owner.login" login :name repo-name})]
+  (let [db-results (mc/find-maps "specific-repos" {"owner.login" login :name repo-name})]
     (if (seq db-results)
        (first db-results)
        (let [api-result (repos/specific-repo login repo-name)]
-           (mc/insert "repos" api-result)
+           (mc/insert "specific-repos" api-result)
            api-result))))
 
 (defn user-repos [login]
@@ -65,8 +62,10 @@
   (mc/remove table))
 
 (setup)
-; (mc/remove "users")
-; (mc/remove "repos")
+;(mc/remove "users")
+;(mc/remove "repos")
+;(mc/remove "specific-repos")
+;(mc/remove "collaborators")
 
 (expect "http://matthewrocklin.com" (get (user "mrocklin") :blog))
 (expect 1 (count (user-repos "languagejam")))
@@ -77,4 +76,4 @@
 (expect #{"mrocklin" "eigenhombre"} (set (map :login (collaborators "eigenhombre" "mongocrawl"))))
 (expect "git://github.com/mrocklin/matrix-algebra.git" 
         (:git_url (specific-repo "mrocklin" "matrix-algebra")))
-(expect 1 (count (mc/find-maps "repos" {:name "matrix-algebra"})))
+(expect 1 (count (mc/find-maps "specific-repos" {:name "matrix-algebra"})))
